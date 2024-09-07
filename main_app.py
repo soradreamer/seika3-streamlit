@@ -392,7 +392,7 @@ def model_val_and_result(image):
                 class_index = top10_classes[0][i].item()
                 class_label_en = class_names_en[class_index]
                 class_label_jp = class_names_jp[class_index]
-                sample_img_path = f"../sample/{class_label_en}_sample.jpg"
+                sample_img_path = f"./sample/{class_label_en}_sample.jpg"
                 i=i+1
                 if os.path.exists(sample_img_path):
                 # 画像を開く
