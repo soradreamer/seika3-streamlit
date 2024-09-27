@@ -24,7 +24,7 @@ def main():
     if 'cropped_image' not in st.session_state:
         st.session_state.cropped_image = None
     col1.title('犬種判別アプリ🐾')
-    col1.write('こちらに画像をアップロードしてください。(jpgもしくはpng)')
+    col1.write('こちらに画像をアップロードしてください。')
 
     # アップロードオブジェクト用意
     upload_file = col1.file_uploader("jpgもしくはpng",type=["jpg","png"])
@@ -39,9 +39,11 @@ def main():
             if st.session_state.cropped_image is not None:  # トリミング後の画像が存在する場合
                 model_val_and_result(st.session_state.cropped_image)
                 col1.image(st.session_state.cropped_image, caption='予測に使用した画像', use_column_width=True)
+                st.session_state.cropped_image = None
             else:
                 model_val_and_result(image)
                 col1.image(image, caption='予測に使用した画像', use_column_width=True)
+                st.session_state.cropped_image = None
 
 # トリミングの準備、サイドバー表示
 def triming_pre(image):
@@ -340,7 +342,7 @@ def model_val_and_result(image):
     model.fc = nn.Linear(num_ftrs, num_classes)
 
     # 学習したモデルを読み込み
-    model.load_state_dict(torch.load('model_03_2_resnet.pth', map_location="cpu"))
+    model.load_state_dict(torch.load('model_03_2_resnet.pth', map_location="cpu",weights_only=True))
     model.eval()
     preprocess = transforms.Compose([
         transforms.Resize((256, 256)),  # モデルの期待するサイズにリサイズ
@@ -370,7 +372,8 @@ def model_val_and_result(image):
         class_probability = top10_probabilities[0][i].item() * 100  # 確率をパーセンテージに変換
         add_dict= {'Rank':i+1, '種類':class_label_jp, '確率(%)':class_probability}
         df_add  =pd.DataFrame(add_dict,index=[0])
-        df_result = pd.concat([df_result,df_add],ignore_index=True)
+        df_add_clean = df_add.dropna(how='all',axis=1)
+        df_result = pd.concat([df_result,df_add_clean],ignore_index=True)
     
     #
     # 結果表示
@@ -386,20 +389,22 @@ def model_val_and_result(image):
         with col2.container():
             row1 = st.columns(5)
             row2 = st.columns(5)
-            i=0
+            index=0
             for col in row1 + row2:
-                tile = col.container(height=280)
-                class_index = top10_classes[0][i].item()
+                tile = col.container(height=300)
+
+                class_index = top10_classes[0][index].item()
+                index=index+1
+
                 class_label_en = class_names_en[class_index]
                 class_label_jp = class_names_jp[class_index]
                 sample_img_path = f"./sample/{class_label_en}_sample.jpg"
-                i=i+1
+                
                 if os.path.exists(sample_img_path):
                 # 画像を開く
                     sample_image = Image.open(sample_img_path)
                     # Streamlitで画像を表示
                     tile.image(sample_image, caption=f"{class_label_jp}", use_column_width=True)
-                    tile.link_button("詳細", f"https://www.akc.org/dog-breeds/{class_label_en.replace('_','-')}/")
 
 if __name__ == "__main__":
     main()
